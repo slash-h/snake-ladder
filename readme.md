@@ -1,22 +1,3 @@
-# Getting Started
+# 🐍 SAP Developer Challenge — Snake & Ladder with SAP CAP Status Transition Flows
 
-Welcome to your new CAP project.
-
-It contains these folders and files, following our recommended project layout:
-
-File or Folder | Purpose
----------|----------
-`app/` | content for UI frontends goes here
-`db/` | your domain models and data go here
-`srv/` | your service models and code go here
-`readme.md` | this getting started guide
-
-## Next Steps
-
-- Open a new terminal and run `cds watch`
-- (in VS Code simply choose _**Terminal** > Run Task > cds watch_)
-- Start with your domain model, in a CDS file in `db/`
-
-## Learn More
-
-Learn more at <https://cap.cloud.sap>.
+[July Developer Challenge](https://community.sap.com/t5/sap-cap-blog-posts/july-developer-challenge-snake-amp-ladder-with-sap-cap-status-transition/ba-p/14429486)
