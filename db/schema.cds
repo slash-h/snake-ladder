@@ -30,18 +30,35 @@ entity GameSessions {
 // Player  — one row per player per session
 @flow.status: TurnStatus
 entity Players {
-    key ID           : UUID;
-        session      : Association to GameSessions;
-        name         : String(100);
+    key ID            : UUID;
+        session       : Association to GameSessions;
+        name          : String(100);
 
         @readonly
-        position     : Integer default 1; // current square (0-100)
+        position      : Integer default 1; // current square (0-100)
 
         @readonly
-        TurnStatus   : TurnStatus default #Waiting;
-        turnOrder    : Integer; // 1 = goes first
-        turnsBlocked : Integer;
-        lastRoll     : Integer; // last dice result
+        TurnStatus    : TurnStatus default #Waiting;
+        turnOrder     : Integer; // 1 = goes first
+        turnsBlocked  : Integer;
+        lastRoll      : Integer; // last dice result
+        prevPosition  : Integer default 1; // position before last roll
+        lastEventType : String(20); // event from last roll: normal|ladder|snake|doubleSnake
 }
 // Why @flow.status on Players? Each player is an independent state machine.
 // Their TurnStatus transitions independently — one player is Playing while others are Waiting.
+
+// TurnLog - stores every move
+entity TurnLog {
+    key ID         : UUID;
+        session    : Association to GameSessions;
+        player     : Association to Players;
+        turnNumber : Integer;
+        diceRoll   : Integer;
+        fromSquare : Integer;
+        toSquare   : Integer;
+        eventType  : String(20); // 'normal'|'ladder'|'snake'|'doubleSnake'|'win'|'blocked'
+        timestamp  : Timestamp;
+
+
+}

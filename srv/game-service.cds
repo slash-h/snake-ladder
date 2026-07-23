@@ -37,6 +37,14 @@ service GameService {
 
     entity BoardSquares as projection on snakeladder.BoardSquares;
 
+    entity TurnLog      as projection on snakeladder.TurnLog;
+
+    event TurnComplete {
+        sessionID    : UUID;
+        playerID     : UUID;
+        nextPlayerID : UUID;
+        turnNumber   : Integer;
+    } // As opposed to the other events, this event is added inside the service block so it appears in OData $metadata and the MCP describe tool
 }
 
 // Domain Events - emitted by action handlers

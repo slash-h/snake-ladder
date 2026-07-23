@@ -1,9 +1,10 @@
-const cds = require('@sap/cds')
+const cds = require('@sap/cds');
+const { timeStamp } = require('node:console');
 
 module.exports = class GameService extends cds.ApplicationService {
     async init() {
 
-        const { Players, BoardSquares } = this.entities;
+        const { Players, BoardSquares, TurnLog } = this.entities;
 
         // ── startTurn
         // @from: [#Waiting]  →  CAP validates status before this runs
@@ -48,7 +49,10 @@ module.exports = class GameService extends cds.ApplicationService {
             }
 
             // Save Position and Last Roll
-            await UPDATE(Players).set({ position: finalPosition, lastRoll: roll }).where({ ID: player.ID })
+            await UPDATE(Players).set({
+                prevPosition: player.position,
+                lastEventType: event?.type ?? 'normal', position: finalPosition, lastRoll: roll
+            }).where({ ID: player.ID })
 
             // Emit domain event so subscribers can react 
             if (event) await this.emit("BoardEvent", { playerID: player.ID, ...event })
@@ -64,7 +68,60 @@ module.exports = class GameService extends cds.ApplicationService {
         // @from: [#Moving]  →  normal end of a turn, hands off to next player
         // @to: #Waiting     →  player waits for their next turn
         this.on("confirmMove", "Players", async (req) => {
-            //For now, CAP framework handles the state change
+            //CAP framework handles the state change to #Waiting.
+            //We store the turn information of the current player in TurnLog and 
+            //then find the next player and set their status to 'Playing'
+
+            const player = await SELECT.one.from(Players).where({ ID: req.params[0].ID })
+            if (!player) return req.error(404, "Player not found!")
+
+            // Check current player win condition before handing off to next player
+            if (player.position === 100) {
+                //Delicate to winGame action
+                await this.send({ event: 'winGame', entity: Players, params: [{ ID: player.ID }] })
+                return
+            }
+
+            //Log this turn
+            const [{ n: count }] = await SELECT`COUNT(*) as n`.from(TurnLog).where({ session_ID: player.session_ID })
+            const turnNumber = (count || 0) + 1
+            await INSERT.into(TurnLog).entries({
+                ID: cds.utils.uuid(),
+                session_ID: player.session_ID,
+                player_ID: player.ID,
+                turnNumber,
+                diceRoll: player.lastRoll,
+                fromSquare: player.prevPosition,   // pre-roll position stored by rollDice
+                toSquare: player.position,
+                eventType: player.lastEventType ?? 'normal',   // event type stored by rollDice
+                timeStamp: new Date().toISOString()
+            });
+
+            // Find next player
+            const players = await SELECT.from(Players).where({ session_ID: player.session_ID }).orderBy('turnOrder')
+
+            const idx = players.findIndex(p => p.ID === player.ID)
+            // Skip finished players — guard counter prevents infinite loop if all finish simultaneously
+            let nextIdx = (idx + 1) % players.length
+            let guard = 0
+            while (players[nextIdx].TurnStatus === 'Finished' && guard++ < players.length) {
+                nextIdx = (nextIdx + 1) % players.length
+            }
+            const next = players[nextIdx]
+
+            await this.emit('TurnComplete', {
+                sessionID: player.session_ID,
+                playerID: player.ID,
+                nextPlayerID: next.ID,
+                turnNumber
+            })
+
+            // Activate next player — use direct UPDATE, not the flow action,
+            // because we're already inside a handler
+            await UPDATE(Players)
+                .set({ TurnStatus: 'Playing' })
+                .where({ ID: next.ID })
+
         })
 
         // ── blockPlayer 

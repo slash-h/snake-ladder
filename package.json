@@ -2,7 +2,7 @@
     "name": "snake-ladder",
     "version": "1.0.0",
     "dependencies": {
-        "@cap-js/mcp": "^1.1.1",
+        "@cap-js/mcp": "^1.2.0",
         "@sap/cds": "^10.0.3",
         "node": "^26.5.0"
     },
