@@ -188,7 +188,7 @@ module.exports = class GameService extends cds.ApplicationService {
       await UPDATE(Players).set({ TurnStatus: "Playing" }).where({ ID: players[0].ID })
 
       //Set session start time 
-      await UPDATE("snakeladder.GameSessions").set({ createdAt: new Date().toISOString() }).where({ ID: sessionID })
+      await UPDATE("snakeladder.GameSessions").set({ startedAt: new Date().toISOString() }).where({ ID: sessionID })
     })
 
     // -- endGame 
