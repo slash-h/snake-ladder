@@ -154,11 +154,27 @@ module.exports = class GameService extends cds.ApplicationService {
     // @from: [#Moving]  →  called when player.position === 100
     // @to: #Finished    →  player has won
     this.on("winGame", "Players", async (req) => {
-      const player = SELECT.one.from(Players).where({ ID: req.params[0].ID })
+      const player = await SELECT.one.from(Players).where({ ID: req.params[0].ID })
       if (!player) return req.error(404, "Player not found")
 
       // Mark the session as finished with this player as winner
-      await UPDATE("snakeladder.GameSessions").set({ finishedAt: new Date().toISOString(), winner_ID: player.ID }).where({ ID: player.ID })
+      await this.send({ event: 'endGame', entity: 'GameSessions', params: [{ ID: player.session_ID }] })
+      await UPDATE("snakeladder.GameSessions").set({ winner_ID: player.ID }).where({ ID: player.session_ID })
+
+      // Log the winning turn
+      const [{ n: count }] = await SELECT`COUNT(*) as n`.from(TurnLog).where({ session_ID: player.session_ID })
+      const turnNumber = (count || 0) + 1
+      await INSERT.into(TurnLog).entries({
+        ID: cds.utils.uuid(),
+        session_ID: player.session_ID,
+        player_ID: player.ID,
+        turnNumber,
+        diceRoll: player.lastRoll,
+        fromSquare: player.prevPosition,
+        toSquare: player.position,
+        eventType: 'win',
+        timeStamp: new Date().toISOString()
+      });
 
       await this.emit("GameWon", { playerID: player.ID, sessionID: player.session_ID })
     })

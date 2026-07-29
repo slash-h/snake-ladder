@@ -72,6 +72,4 @@ entity TurnLog {
       toSquare   : Integer;
       eventType  : String(20); // 'normal'|'ladder'|'snake'|'doubleSnake'|'win'|'blocked'
       timestamp  : Timestamp;
-
-
 }
